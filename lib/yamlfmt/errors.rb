@@ -6,6 +6,8 @@ module Yamlfmt
   class ParseError < Error; end
   class UnsupportedFileError < Error; end
   class ValidationError < Error; end
+  class ConfigError < Error; end
+  class PathError < Error; end
 
   class ConflictError < Error
     attr_reader :findings

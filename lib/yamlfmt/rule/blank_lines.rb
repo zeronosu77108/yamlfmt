@@ -7,6 +7,13 @@ module Yamlfmt
       priority 200
       default_config max: 1
 
+      def self.validate_config(config)
+        max = config.fetch(:max)
+        return if max.is_a?(Integer) && max >= 0
+
+        raise ConfigError, "blank-lines.max must be a non-negative integer"
+      end
+
       def call(document)
         return [] if document.block_scalar?
 

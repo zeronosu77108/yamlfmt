@@ -27,12 +27,16 @@ module Yamlfmt
         def autocorrectable?
           true
         end
+
+        def validate_config(_config)
+        end
       end
 
       attr_reader :config
 
       def initialize(config = {})
         @config = self.class.default_config.merge(config).freeze
+        self.class.validate_config(@config)
       end
 
       def call(_document)
