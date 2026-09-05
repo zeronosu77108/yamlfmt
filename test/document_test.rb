@@ -69,4 +69,16 @@ class DocumentTest < Minitest::Test
       Yamlfmt::Document.new("key: [\n")
     end
   end
+
+  def test_wraps_psych_pure_internal_errors_as_unsupported_input
+    failure = lambda do |*, **|
+      raise Psych::Pure::InternalException, "unexpected parser state"
+    end
+
+    Psych::Pure.stub(:parse, failure) do
+      assert_raises(Yamlfmt::UnsupportedFileError) do
+        Yamlfmt::Document.new("key: value\n")
+      end
+    end
+  end
 end

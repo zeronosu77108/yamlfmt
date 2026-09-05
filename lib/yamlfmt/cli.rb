@@ -104,6 +104,7 @@ module Yamlfmt
 
       if options[:diff]
         print_diff(result, display_path, options)
+        print_findings(result, display_path, findings: result.findings.reject(&:autocorrectable?))
       else
         print_findings(result, display_path)
       end
@@ -117,8 +118,8 @@ module Yamlfmt
       state[:error] = true
     end
 
-    def print_findings(result, display_path)
-      result.findings.each do |finding|
+    def print_findings(result, display_path, findings: result.findings)
+      findings.each do |finding|
         line, column = result.document.line_and_column(finding.range.start_offset)
         @stdout.puts("#{display_path}:#{line}:#{column}: #{finding.rule_id} #{finding.message}")
       end
@@ -137,7 +138,7 @@ module Yamlfmt
       output.lines.map do |line|
         case line
         when /\A\+(?!\+\+)/ then "\e[32m#{line}\e[0m"
-        when /\A-(?!---)/ then "\e[31m#{line}\e[0m"
+        when /\A-(?!--)/ then "\e[31m#{line}\e[0m"
         when /\A@@/ then "\e[36m#{line}\e[0m"
         else line
         end

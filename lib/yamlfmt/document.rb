@@ -111,7 +111,7 @@ module Yamlfmt
       Psych::Pure.parse(source, filename: path, comments: true)
     rescue Psych::SyntaxError => error
       raise ParseError, error.message
-    rescue NoMethodError => error
+    rescue Psych::Pure::InternalException, NoMethodError => error
       raise UnsupportedFileError, "psych-pure could not parse this document: #{error.message}"
     end
 

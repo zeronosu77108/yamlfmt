@@ -8,6 +8,12 @@ require "tmpdir"
 require "test_helper"
 
 class CLITest < Minitest::Test
+  class TTYStringIO < StringIO
+    def tty?
+      true
+    end
+  end
+
   def setup
     @directory = Dir.mktmpdir
   end
@@ -48,6 +54,19 @@ class CLITest < Minitest::Test
     assert_equal "key: \"value\"\n", File.read(path)
     assert_includes stdout, "--- example.yml\n+++ example.yml\n"
     assert_includes stdout, "-key: \"value\"\n+key: value\n"
+  end
+
+  def test_diff_colors_changes_but_not_file_headers_on_a_terminal
+    write("example.yml", "key: \"value\"\n")
+    stdout = TTYStringIO.new
+
+    status, output, = run_cli(["--diff"], stdout:)
+
+    assert_equal 1, status
+    assert_includes output, "--- example.yml\n+++ example.yml\n"
+    refute_includes output, "\e[31m--- example.yml"
+    assert_includes output, "\e[31m-key: \"value\"\n\e[0m"
+    assert_includes output, "\e[32m+key: value\n\e[0m"
   end
 
   def test_fix_and_diff_are_mutually_exclusive
@@ -152,8 +171,7 @@ class CLITest < Minitest::Test
 
   private
 
-  def run_cli(arguments)
-    stdout = StringIO.new
+  def run_cli(arguments, stdout: StringIO.new)
     stderr = StringIO.new
     status = Yamlfmt::CLI.start(arguments, stdout:, stderr:, cwd: @directory)
     [status, stdout.string, stderr.string]
