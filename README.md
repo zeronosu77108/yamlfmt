@@ -54,6 +54,23 @@ $ yamlfmt --init
 Other options are available through `yamlfmt --help`. Colors are used only when
 writing a diff to a terminal and can be disabled with `--no-color`.
 
+Check mode ends with the number of files inspected, issues found, and issues
+that can be corrected automatically:
+
+```text
+12 files inspected, 5 issues found, 4 autocorrectable
+```
+
+Fix mode instead reports how many issues and files were actually corrected,
+followed by the number of issues that remain when applicable:
+
+```text
+12 files inspected, 5 issues found, 4 corrected in 2 files, 1 issue remains
+```
+
+Warnings and failed files are reported separately from issue counts. Diff mode
+does not print a summary, so its output can be redirected or piped as a patch.
+
 ### Exit status
 
 | Status | Meaning |

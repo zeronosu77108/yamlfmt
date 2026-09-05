@@ -33,16 +33,33 @@ class CLITest < Minitest::Test
     assert_includes stdout, "trailing-whitespace"
     assert_includes stdout, "final-newline"
     assert_includes stdout, "unnecessary-quotes"
+    assert stdout.end_with?("1 file inspected, 3 issues found, 3 autocorrectable\n"), stdout
     assert_empty stderr
   end
 
   def test_fix_mode_rewrites_files_and_returns_success
     path = write("example.yml", "key: \"value\"  ")
 
-    status, = run_cli(["--fix"])
+    status, stdout, = run_cli(["--fix"])
 
     assert_equal 0, status
     assert_equal "key: value\n", File.read(path)
+    assert stdout.end_with?("1 file inspected, 3 issues found, 3 corrected in 1 file\n"), stdout
+  end
+
+  def test_fix_mode_reports_issues_that_remain
+    path = write("example.yml", "one: value\n")
+    findings = [
+      finding("correctable", 0, 3, "ONE"),
+      finding("report-only", 5, 10)
+    ]
+    processor = processor_returning("ONE: value\n", findings)
+
+    status, stdout, = run_cli(["--fix"], processor:)
+
+    assert_equal 1, status
+    assert_equal "ONE: value\n", File.read(path)
+    assert stdout.end_with?("1 file inspected, 2 issues found, 1 corrected in 1 file, 1 issue remains\n"), stdout
   end
 
   def test_diff_mode_prints_a_unified_diff_without_rewriting
@@ -54,6 +71,16 @@ class CLITest < Minitest::Test
     assert_equal "key: \"value\"\n", File.read(path)
     assert_includes stdout, "--- example.yml\n+++ example.yml\n"
     assert_includes stdout, "-key: \"value\"\n+key: value\n"
+    refute_includes stdout, "file inspected"
+  end
+
+  def test_check_mode_summarizes_clean_and_empty_targets
+    write("example.yml", "key: value\n")
+
+    assert_equal "1 file inspected, no issues found\n", run_cli([])[1]
+
+    Dir.mkdir(File.join(@directory, "empty"))
+    assert_equal "0 files inspected, no issues found\n", run_cli(["empty"])[1]
   end
 
   def test_diff_colors_changes_but_not_file_headers_on_a_terminal
@@ -130,12 +157,13 @@ class CLITest < Minitest::Test
     invalid = write("invalid.yml", "key: [\n")
     valid = write("valid.yml", "key: \"value\"\n")
 
-    status, _, stderr = run_cli(["--fix"])
+    status, stdout, stderr = run_cli(["--fix"])
 
     assert_equal 1, status
     assert_equal "key: [\n", File.read(invalid)
     assert_equal "key: value\n", File.read(valid)
     assert_includes stderr, "invalid.yml:"
+    assert stdout.end_with?("2 files inspected, 1 issue found, 1 corrected in 1 file, 1 file failed\n"), stdout
   end
 
   def test_unsupported_files_fail_without_being_changed
@@ -148,10 +176,11 @@ class CLITest < Minitest::Test
   def test_warns_when_line_rules_are_skipped_for_block_scalars
     write("example.yml", "name: \"value\"  \nbody: |\n  text  \n")
 
-    status, _, stderr = run_cli(["--fix"])
+    status, stdout, stderr = run_cli(["--fix"])
 
     assert_equal 0, status
     assert_includes stderr, "line-based rules were skipped"
+    assert stdout.end_with?("1 file inspected, 1 issue found, 1 corrected in 1 file\n"), stdout
   end
 
   def test_help_and_version_succeed
@@ -171,10 +200,25 @@ class CLITest < Minitest::Test
 
   private
 
-  def run_cli(arguments, stdout: StringIO.new)
+  def run_cli(arguments, stdout: StringIO.new, processor: Yamlfmt::Processor.new)
     stderr = StringIO.new
-    status = Yamlfmt::CLI.start(arguments, stdout:, stderr:, cwd: @directory)
+    status = Yamlfmt::CLI.new(stdout:, stderr:, cwd: @directory, processor:).run(arguments)
     [status, stdout.string, stderr.string]
+  end
+
+  def finding(rule_id, start_offset, end_offset, replacement = nil)
+    range = Yamlfmt::SourceRange.new(start_offset:, end_offset:)
+    edit = Yamlfmt::Edit.new(range:, replacement:) if replacement
+    Yamlfmt::Finding.new(rule_id:, range:, message: "message", edit:)
+  end
+
+  def processor_returning(formatted_source, findings)
+    Object.new.tap do |processor|
+      processor.define_singleton_method(:call) do |source, path:, rules:|
+        document = Yamlfmt::Document.new(source, path:)
+        Yamlfmt::Processor::Result.new(document:, source:, formatted_source:, findings:, warnings: [])
+      end
+    end
   end
 
   def write(path, contents)

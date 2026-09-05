@@ -83,24 +83,37 @@ module Yamlfmt
       config.warnings.each { |warning| warn_message(warning) }
       rules = RulePlan.new.call(config)
       files = FileFinder.new(cwd: @cwd, exclude: config.exclude).call(paths)
-      state = {error: false, finding: false, uncorrected: false}
+      state = {
+        error: false,
+        issues: 0,
+        autocorrectable: 0,
+        corrected: 0,
+        corrected_files: 0,
+        remaining: 0,
+        failed_files: 0
+      }
 
       files.each do |path|
         process_file(path, rules, options, state)
       end
 
-      return 1 if state[:error] || state[:uncorrected]
+      print_summary(files.length, state, fix: options[:fix]) unless options[:diff]
+
+      return 1 if state[:error] || state[:remaining].positive?
       return 0 if options[:fix]
 
-      state[:finding] ? 1 : 0
+      state[:issues].positive? ? 1 : 0
     end
 
     def process_file(path, rules, options, state)
+      autocorrectable = 0
       source = File.binread(path).force_encoding(Encoding::UTF_8)
       result = @processor.call(source, path:, rules:)
       display_path = display_path(path)
       result.warnings.each { |warning| warn_message("#{display_path}: #{warning}") }
-      state[:finding] ||= !result.findings.empty?
+      autocorrectable = result.findings.count(&:autocorrectable?)
+      state[:issues] += result.findings.length
+      state[:autocorrectable] += autocorrectable
 
       if options[:diff]
         print_diff(result, display_path, options)
@@ -110,12 +123,55 @@ module Yamlfmt
       end
 
       if options[:fix]
-        File.binwrite(path, result.formatted_source) if result.changed?
-        state[:uncorrected] ||= result.findings.any? { |finding| !finding.autocorrectable? }
+        state[:remaining] += result.findings.length - autocorrectable
+
+        if result.changed?
+          File.binwrite(path, result.formatted_source)
+          state[:corrected] += autocorrectable
+          state[:corrected_files] += 1
+        else
+          state[:remaining] += autocorrectable
+        end
       end
     rescue Error, SystemCallError => error
       @stderr.puts("#{display_path(path)}: #{error.message}")
       state[:error] = true
+      state[:remaining] += autocorrectable if options[:fix]
+      state[:failed_files] += 1
+    end
+
+    def print_summary(file_count, state, fix:)
+      @stdout.puts if state[:issues].positive?
+
+      parts = ["#{count(file_count, "file")} inspected"]
+      if state[:issues].zero?
+        parts << "no issues found"
+      else
+        parts << "#{count(state[:issues], "issue")} found"
+        if fix
+          parts << corrected_summary(state)
+          parts << remaining_summary(state[:remaining]) if state[:remaining].positive?
+        else
+          parts << "#{state[:autocorrectable]} autocorrectable"
+        end
+      end
+      parts << "#{count(state[:failed_files], "file")} failed" if state[:failed_files].positive?
+
+      @stdout.puts(parts.join(", "))
+    end
+
+    def corrected_summary(state)
+      return "0 corrected" if state[:corrected].zero?
+
+      "#{state[:corrected]} corrected in #{count(state[:corrected_files], "file")}"
+    end
+
+    def remaining_summary(number)
+      "#{count(number, "issue")} #{(number == 1) ? "remains" : "remain"}"
+    end
+
+    def count(number, noun)
+      "#{number} #{noun}#{"s" unless number == 1}"
     end
 
     def print_findings(result, display_path, findings: result.findings)
