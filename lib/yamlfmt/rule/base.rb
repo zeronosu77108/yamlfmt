@@ -38,6 +38,13 @@ module Yamlfmt
       def call(_document)
         raise NotImplementedError
       end
+
+      private
+
+      def correction(range, message, replacement)
+        edit = Edit.new(range:, replacement:)
+        Finding.new(rule_id: self.class.rule_id, range:, message:, edit:)
+      end
     end
   end
 end

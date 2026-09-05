@@ -27,9 +27,9 @@ module Yamlfmt
       if empty? && other.empty?
         start_offset == other.start_offset
       elsif empty?
-        start_offset.between?(other.start_offset, other.end_offset)
+        start_offset > other.start_offset && start_offset < other.end_offset
       elsif other.empty?
-        other.start_offset.between?(start_offset, end_offset)
+        other.start_offset > start_offset && other.start_offset < end_offset
       else
         start_offset < other.end_offset && other.start_offset < end_offset
       end

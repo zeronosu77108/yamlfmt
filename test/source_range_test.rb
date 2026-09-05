@@ -22,4 +22,11 @@ class SourceRangeTest < Minitest::Test
 
     refute left.overlaps?(right)
   end
+
+  def test_an_insertion_at_a_range_boundary_does_not_overlap
+    deletion = Yamlfmt::SourceRange.new(start_offset: 0, end_offset: 2)
+    insertion = Yamlfmt::SourceRange.new(start_offset: 2, end_offset: 2)
+
+    refute deletion.overlaps?(insertion)
+  end
 end
