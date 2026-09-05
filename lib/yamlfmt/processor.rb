@@ -2,7 +2,7 @@
 
 module Yamlfmt
   class Processor
-    Result = Data.define(:source, :formatted_source, :findings, :warnings) do
+    Result = Data.define(:document, :source, :formatted_source, :findings, :warnings) do
       def changed?
         source != formatted_source
       end
@@ -20,7 +20,7 @@ module Yamlfmt
       @validator.call(document, formatted_source) if formatted_source != source
       warnings = block_scalar_warnings(document, rules).freeze
 
-      Result.new(source:, formatted_source:, findings:, warnings:)
+      Result.new(document:, source:, formatted_source:, findings:, warnings:)
     end
 
     private

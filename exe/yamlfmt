@@ -1,3 +1,5 @@
 #!/usr/bin/env ruby
 
 require "yamlfmt"
+
+exit Yamlfmt::CLI.start(ARGV)
