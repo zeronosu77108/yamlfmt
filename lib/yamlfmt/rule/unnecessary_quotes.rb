@@ -20,6 +20,7 @@ module Yamlfmt
 
         range = document.range_for(node)
         return unless range
+        return if multiline?(document.source, range)
         return if flow_mapping_key && missing_flow_key_separation?(document.source, range)
 
         correction(range, "unnecessary quotes detected", node.value)
@@ -58,6 +59,10 @@ module Yamlfmt
 
       def flow_mapping?(node)
         node.is_a?(Psych::Nodes::Mapping) && node.style == Psych::Nodes::Mapping::FLOW
+      end
+
+      def multiline?(source, range)
+        source.byteslice(range.start_offset, range.length).match?(/[\r\n]/)
       end
 
       def missing_flow_key_separation?(source, range)

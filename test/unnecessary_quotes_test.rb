@@ -71,6 +71,15 @@ class UnnecessaryQuotesTest < Minitest::Test
     assert_equal expected, process(source)
   end
 
+  def test_skips_multiline_scalars_that_overlap_line_edits
+    source = "key: \"first  \n  second\"\n"
+
+    result = Yamlfmt::Processor.new.call(source)
+
+    assert_equal "key: \"first\n  second\"\n", result.formatted_source
+    assert_equal ["trailing-whitespace"], result.findings.map(&:rule_id)
+  end
+
   def test_runs_outside_a_block_scalar_while_line_rules_are_skipped
     source = "name: \"value\"  \nbody: |\n  text  \n"
 
