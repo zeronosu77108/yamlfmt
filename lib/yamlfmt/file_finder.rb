@@ -17,7 +17,7 @@ module Yamlfmt
 
       roots.each do |root|
         validate_root!(root)
-        next if symlink?(root) || always_excluded?(root) || @exclude_matcher.excluded?(root)
+        next if symlink_path?(root) || always_excluded?(root) || @exclude_matcher.excluded?(root)
 
         if File.file?(root)
           files[root] = true
@@ -52,6 +52,20 @@ module Yamlfmt
 
     def symlink?(path)
       File.symlink?(path)
+    end
+
+    def symlink_path?(path)
+      relative = Pathname(path).relative_path_from(Pathname(@cwd))
+      current = @cwd
+
+      relative.each_filename do |component|
+        current = File.expand_path(component, current)
+        return true if symlink?(current)
+      end
+
+      false
+    rescue ArgumentError
+      symlink?(path)
     end
 
     def always_excluded?(path)

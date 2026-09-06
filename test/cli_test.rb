@@ -189,11 +189,11 @@ class CLITest < Minitest::Test
   end
 
   def test_executable_returns_the_cli_status
-    path = write("example.yml", "key: \"value\"\n")
+    write("example.yml", "key: \"value\"\n")
     executable = File.expand_path("../exe/yamlfmt", __dir__)
     library = File.expand_path("../lib", __dir__)
 
-    _stdout, _stderr, status = Open3.capture3(RbConfig.ruby, "-I#{library}", executable, path, chdir: @directory)
+    _stdout, _stderr, status = Open3.capture3(RbConfig.ruby, "-I#{library}", executable, "example.yml", chdir: @directory)
 
     assert_equal 1, status.exitstatus
   end

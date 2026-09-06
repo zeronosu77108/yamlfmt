@@ -74,6 +74,12 @@ class FileFinderTest < Minitest::Test
     refute finder.call.any? { |path| path.include?("linked") }
   end
 
+  def test_excludes_direct_files_below_symlinked_directories
+    File.symlink(File.join(@directory, "nested"), File.join(@directory, "linked"))
+
+    assert_empty finder.call(["linked/two.yaml"])
+  end
+
   def test_rejects_missing_roots
     assert_raises(Yamlfmt::PathError) { finder.call(["missing"]) }
   end
