@@ -63,6 +63,10 @@ module Yamlfmt
 
       defaults = rule_class.default_config
       value.each_with_object({}) do |(key, option_value), options|
+        unless key.is_a?(String) || key.is_a?(Symbol)
+          raise ConfigError, "option names for #{rule_class.rule_id} must be strings or symbols"
+        end
+
         key = key.to_sym
         unless defaults.key?(key)
           @warnings << "unknown option for #{rule_class.rule_id}: #{key}"

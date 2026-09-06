@@ -66,6 +66,16 @@ class ConfigTest < Minitest::Test
     assert_raises(Yamlfmt::ConfigError) { Yamlfmt::RulePlan.new.call(config) }
   end
 
+  def test_rejects_non_string_rule_option_names
+    Dir.mktmpdir do |directory|
+      File.write(File.join(directory, ".yamlfmt.yml"), "rules:\n  blank-lines:\n    1: 2\n")
+
+      error = assert_raises(Yamlfmt::ConfigError) { Yamlfmt::Config.load(cwd: directory) }
+
+      assert_equal "option names for blank-lines must be strings or symbols", error.message
+    end
+  end
+
   def test_rejects_unsupported_exclude_patterns
     ["/absolute", "../parent", "!important"].each do |pattern|
       assert_raises(Yamlfmt::ConfigError) do
