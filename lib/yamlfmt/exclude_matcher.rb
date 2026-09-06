@@ -42,12 +42,19 @@ module Yamlfmt
 
     def path_pattern_match?(pattern, relative)
       if pattern.end_with?("/**")
-        prefix = pattern.delete_suffix("/**")
-        relative == prefix || relative.start_with?("#{prefix}/")
+        recursive_path_pattern_match?(pattern.delete_suffix("/**"), relative)
       elsif glob?(pattern)
         File.fnmatch?(pattern, relative, FLAGS)
       else
         relative == pattern || relative.start_with?("#{pattern}/")
+      end
+    end
+
+    def recursive_path_pattern_match?(prefix, relative)
+      components = relative.split("/")
+      components.each_index.any? do |index|
+        ancestor = components.first(index + 1).join("/")
+        File.fnmatch?(prefix, ancestor, FLAGS)
       end
     end
 

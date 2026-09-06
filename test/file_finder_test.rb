@@ -46,6 +46,14 @@ class FileFinderTest < Minitest::Test
     assert_empty finder(exclude: ["ignored.txt"]).call(["nested/ignored.txt"])
   end
 
+  def test_applies_wildcard_recursive_exclusions_to_discovered_and_direct_paths
+    path = write("apps/web/generated/example.yml")
+    excluded_finder = finder(exclude: ["apps/*/generated/**"])
+
+    refute_includes excluded_finder.call, path
+    assert_empty excluded_finder.call(["apps/web/generated"])
+  end
+
   def test_deduplicates_overlapping_roots
     paths = finder.call(["one.yml", "."])
 
@@ -72,6 +80,7 @@ class FileFinderTest < Minitest::Test
     absolute = File.join(@directory, path)
     FileUtils.mkdir_p(File.dirname(absolute))
     File.write(absolute, "key: value\n")
+    absolute
   end
 
   def relative(path)
