@@ -118,10 +118,10 @@ module Yamlfmt
 
     def append_record(output, record)
       prefix = {equal: " ", delete: "-", insert: "+"}.fetch(record.type)
-      ending = record.line[/\r\n|\n|\r\z/]
-      content = ending ? record.line.byteslice(0, record.line.bytesize - ending.bytesize) : record.line
+      terminated = record.line.end_with?("\n", "\r")
+      content = record.line.delete_suffix("\n")
       output << prefix << content << "\n"
-      output << "\\ No newline at end of file\n" unless ending
+      output << "\\ No newline at end of file\n" unless terminated
     end
   end
 end

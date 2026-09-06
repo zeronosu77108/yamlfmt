@@ -19,6 +19,19 @@ class UnifiedDiffTest < Minitest::Test
     assert_includes output, "\\ No newline at end of file"
   end
 
+  def test_preserves_carriage_returns_in_crlf_records
+    before = "one\r\ntwo\r\n"
+    after = "one\r\nchanged\r\n"
+    expected = "--- example.yml\n" \
+      "+++ example.yml\n" \
+      "@@ -1,2 +1,2 @@\n" \
+      " one\r\n" \
+      "-two\r\n" \
+      "+changed\r\n"
+
+    assert_equal expected, Yamlfmt::UnifiedDiff.new.call(before, after, path: "example.yml")
+  end
+
   def test_returns_an_empty_string_without_changes
     assert_equal "", Yamlfmt::UnifiedDiff.new.call("same\n", "same\n", path: "example.yml")
   end
