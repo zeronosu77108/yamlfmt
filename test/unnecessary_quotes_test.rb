@@ -43,6 +43,21 @@ class UnnecessaryQuotesTest < Minitest::Test
     assert_equal expected, process(source)
   end
 
+  def test_preserves_flow_indicators_inside_flow_collections
+    source = <<~YAML
+      block: "a,b"
+      sequence: ["a,b", "a[b", "a]b", "a{b", "a}b", "safe"]
+      mapping: {"a,b": "c,d", "safe": "value"}
+    YAML
+    expected = <<~YAML
+      block: a,b
+      sequence: ["a,b", "a[b", "a]b", "a{b", "a}b", safe]
+      mapping: {"a,b": "c,d", safe: value}
+    YAML
+
+    assert_equal expected, process(source)
+  end
+
   def test_runs_outside_a_block_scalar_while_line_rules_are_skipped
     source = "name: \"value\"  \nbody: |\n  text  \n"
 
