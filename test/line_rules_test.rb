@@ -49,6 +49,25 @@ class LineRulesTest < Minitest::Test
     assert_equal source, format_source(source)
   end
 
+  def test_preserves_escaped_trailing_spaces_in_double_quoted_scalars
+    source = "v: \"hello\\ \n  world\"\nx: \"hello\"\n"
+    expected = "v: \"hello\\ \n  world\"\nx: hello\n"
+
+    assert_equal expected, format_source(source)
+  end
+
+  def test_removes_unescaped_trailing_spaces_after_escaped_spaces_in_double_quoted_scalars
+    source = "key: \"hello\\  \n  last\"\n"
+
+    assert_equal "key: \"hello\\ \n  last\"\n", format_source(source, only: "trailing-whitespace")
+  end
+
+  def test_removes_trailing_spaces_inside_double_quoted_scalars
+    source = "key: \"first  \n  second\"\n"
+
+    assert_equal "key: \"first\n  second\"\n", format_source(source, only: "trailing-whitespace")
+  end
+
   def test_all_line_rules_are_idempotent_together
     source = "\n\nfirst: value  \n \n  \nsecond: value\t"
     formatted = format_source(source)
