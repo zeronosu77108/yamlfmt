@@ -34,6 +34,29 @@ class CorrectorTest < Minitest::Test
     assert_equal "d", Yamlfmt::Corrector.new.call("abcd", findings)
   end
 
+  def test_handles_many_disjoint_edits
+    findings = 1_000.times.map do |index|
+      offset = index * 4
+      finding("rule", offset + 2, offset + 3, "")
+    end
+    source = findings.map { |finding| "a  b" }.join
+
+    assert_equal "a b" * 1_000, Yamlfmt::Corrector.new.call(source, findings)
+  end
+
+  def test_rejects_overlapping_zero_width_insertions_at_the_same_offset
+    findings = [
+      finding("first", 2, 2, "a"),
+      finding("second", 2, 2, "b")
+    ]
+
+    error = assert_raises(Yamlfmt::ConflictError) do
+      Yamlfmt::Corrector.new.call("abc", findings)
+    end
+
+    assert_equal %w[first second], error.findings.map(&:rule_id)
+  end
+
   private
 
   def finding(rule_id, start_offset, end_offset, replacement)

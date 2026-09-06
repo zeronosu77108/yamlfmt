@@ -20,21 +20,39 @@ module Yamlfmt
       unique_pairs = pairs.uniq { |_, edit| [edit.range, edit.replacement] }
       redundant = {}
 
-      unique_pairs.combination(2) do |left, right|
-        left_finding, left_edit = left
-        right_finding, right_edit = right
-        next unless left_edit.range.overlaps?(right_edit.range)
+      sorted_pairs = unique_pairs.sort_by { |_, edit| [edit.range.start_offset, edit.range.end_offset] }
 
-        if redundant_deletion?(left_edit, right_edit)
-          redundant[right.object_id] = true
-        elsif redundant_deletion?(right_edit, left_edit)
-          redundant[left.object_id] = true
-        else
-          raise ConflictError, [left_finding, right_finding]
+      sorted_pairs.each_with_index do |left, index|
+        left_finding, left_edit = left
+        ((index + 1)...sorted_pairs.length).each do |right_index|
+          right = sorted_pairs[right_index]
+          right_finding, right_edit = right
+          break if past_overlap_window?(left_edit, right_edit)
+
+          next unless left_edit.range.overlaps?(right_edit.range)
+
+          if redundant_deletion?(left_edit, right_edit)
+            redundant[right.object_id] = true
+          elsif redundant_deletion?(right_edit, left_edit)
+            redundant[left.object_id] = true
+          else
+            raise ConflictError, [left_finding, right_finding]
+          end
         end
       end
 
       unique_pairs.reject { |pair| redundant[pair.object_id] }.map(&:last)
+    end
+
+    def past_overlap_window?(left_edit, right_edit)
+      left_range = left_edit.range
+      right_range = right_edit.range
+
+      if left_range.empty?
+        right_range.start_offset > left_range.start_offset
+      else
+        right_range.start_offset >= left_range.end_offset
+      end
     end
 
     def redundant_deletion?(outer, inner)
