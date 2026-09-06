@@ -2,7 +2,7 @@ PATH
   remote: .
   specs:
     yamlfmt (0.1.0)
-      psych (>= 5.1, < 6)
+      psych (>= 5.2.5, < 6)
       psych-pure (~> 0.3.0)
 
 GEM
