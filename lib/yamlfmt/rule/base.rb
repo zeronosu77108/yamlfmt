@@ -1,0 +1,54 @@
+# frozen_string_literal: true
+
+module Yamlfmt
+  module Rule
+    class Base
+      UNSET = Object.new.freeze
+
+      class << self
+        def rule_id(value = UNSET)
+          return @rule_id if value.equal?(UNSET)
+
+          @rule_id = value.to_s.freeze
+        end
+
+        def default_config(value = UNSET)
+          return @default_config || {} if value.equal?(UNSET)
+
+          @default_config = value.freeze
+        end
+
+        def priority(value = UNSET)
+          return @priority || 100 if value.equal?(UNSET)
+
+          @priority = Integer(value)
+        end
+
+        def autocorrectable?
+          true
+        end
+
+        def validate_config(_config)
+        end
+      end
+
+      attr_reader :config
+
+      def initialize(config = {})
+        @config = self.class.default_config.merge(config).freeze
+        self.class.validate_config(@config)
+      end
+
+      def call(_document)
+        raise NotImplementedError
+      end
+
+      private
+
+      def correction(range, message, replacement)
+        edit = Edit.new(range:, replacement:)
+        Finding.new(rule_id: self.class.rule_id, range:, message:, edit:)
+      end
+    end
+  end
+end
