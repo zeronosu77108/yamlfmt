@@ -19,9 +19,10 @@ module Yamlfmt
 
         findings = []
         run_start = nil
+        scalar_ranges = scalar_ranges(document)
 
         document.lines.each_with_index do |line, index|
-          if blank?(line)
+          if blank?(line) && !inside_scalar?(line, scalar_ranges)
             run_start ||= index
           elsif run_start
             finding = finding_for_run(document.lines, run_start, index)
@@ -37,6 +38,18 @@ module Yamlfmt
 
       def blank?(line)
         line.content.match?(/\A[ \t]*\z/)
+      end
+
+      def scalar_ranges(document)
+        document.each_node.filter_map do |node|
+          document.range_for(node) if node.is_a?(Psych::Nodes::Scalar)
+        end
+      end
+
+      def inside_scalar?(line, ranges)
+        ranges.any? do |range|
+          range.start_offset < line.start_offset && line.start_offset < range.end_offset
+        end
       end
 
       def finding_for_run(lines, run_start, run_end)

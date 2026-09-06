@@ -16,6 +16,16 @@ class LineRulesTest < Minitest::Test
     assert_equal "first: value\nsecond: value\n\n", format_source(source, only: "blank-lines", config: {max: 0})
   end
 
+  def test_preserves_blank_lines_inside_multiline_quoted_scalars
+    source = "key: \"first\n\n\n  last\"\n\n\nother: value\n"
+    expected = "key: \"first\n\n\n  last\"\n\nother: value\n"
+    rule = Yamlfmt::Rule::BlankLines.new
+
+    result = Yamlfmt::Processor.new.call(source, rules: [rule])
+
+    assert_equal expected, result.formatted_source
+  end
+
   def test_adds_a_final_newline_using_the_existing_style
     source = "first: value\r\nsecond: value"
 
