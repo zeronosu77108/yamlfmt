@@ -58,6 +58,19 @@ class UnnecessaryQuotesTest < Minitest::Test
     assert_equal expected, process(source)
   end
 
+  def test_preserves_compact_flow_mapping_keys_without_colon_separation
+    source = <<~YAML
+      compact: {"foo":"bar"}
+      spaced: {"foo": "bar"}
+    YAML
+    expected = <<~YAML
+      compact: {"foo":bar}
+      spaced: {foo: bar}
+    YAML
+
+    assert_equal expected, process(source)
+  end
+
   def test_runs_outside_a_block_scalar_while_line_rules_are_skipped
     source = "name: \"value\"  \nbody: |\n  text  \n"
 
