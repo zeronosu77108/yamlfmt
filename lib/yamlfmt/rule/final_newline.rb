@@ -6,19 +6,17 @@ module Yamlfmt
       rule_id "final-newline"
       priority 300
 
-      def call(document)
-        return [] if document.source.empty? || document.block_scalar?
+      def check_line(context)
+        return unless context.last?
 
-        last_content_line = document.lines.reverse_each.find { |line| line.content.match?(/[^ \t]/) }
-        return [remove_whitespace_only_source(document)] unless last_content_line
+        last_content_line = context.lines.reverse_each.find { |line| line.content.match?(/[^ \t]/) }
+        return remove_whitespace_only_source(context.document) unless last_content_line
 
-        finding = if last_content_line.ending.empty?
-          add_final_newline(document)
+        if last_content_line.ending.empty?
+          add_final_newline(context.document)
         else
-          remove_extra_lines(document, last_content_line)
+          remove_extra_lines(context.document, last_content_line)
         end
-
-        finding ? [finding] : []
       end
 
       private

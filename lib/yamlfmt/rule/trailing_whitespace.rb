@@ -6,12 +6,13 @@ module Yamlfmt
       rule_id "trailing-whitespace"
       priority 100
 
-      def check_line(line, document)
+      def check_line(context)
+        line = context.line
         whitespace = line.content[/[ \t]+\z/]
         return unless whitespace
 
         ws_start = line.content.bytesize - whitespace.bytesize
-        removable_start = removable_trailing_start(line, ws_start, double_quoted_scalar_ranges(document))
+        removable_start = removable_trailing_start(line, ws_start, double_quoted_scalar_ranges(context.document))
         return if removable_start >= line.content.bytesize
 
         range = SourceRange.new(
@@ -24,12 +25,7 @@ module Yamlfmt
       private
 
       def double_quoted_scalar_ranges(document)
-        document.each_node.filter_map do |node|
-          next unless node.is_a?(Psych::Nodes::Scalar)
-          next unless node.style == Psych::Nodes::Scalar::DOUBLE_QUOTED
-
-          document.range_for(node)
-        end
+        document.scalar_ranges(style: Psych::Nodes::Scalar::DOUBLE_QUOTED)
       end
 
       def removable_trailing_start(line, ws_start, scalar_ranges)

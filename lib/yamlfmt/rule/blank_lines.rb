@@ -14,24 +14,16 @@ module Yamlfmt
         raise ConfigError, "blank-lines.max must be a non-negative integer"
       end
 
-      def call(document)
-        return [] if document.block_scalar?
+      def check_line(context)
+        ranges = context.document.scalar_ranges
+        line = context.line
+        return unless blank?(line) && !inside_scalar?(line, ranges)
 
-        findings = []
-        run_start = nil
-        scalar_ranges = scalar_ranges(document)
+        following = context.next_line
+        return if following.nil?
+        return if blank?(following) && !inside_scalar?(following, ranges)
 
-        document.lines.each_with_index do |line, index|
-          if blank?(line) && !inside_scalar?(line, scalar_ranges)
-            run_start ||= index
-          elsif run_start
-            finding = finding_for_run(document.lines, run_start, index)
-            findings << finding if finding
-            run_start = nil
-          end
-        end
-
-        findings
+        finding_for_run(context.lines, run_start(context, ranges), context.index + 1)
       end
 
       private
@@ -40,16 +32,21 @@ module Yamlfmt
         line.content.match?(/\A[ \t]*\z/)
       end
 
-      def scalar_ranges(document)
-        document.each_node.filter_map do |node|
-          document.range_for(node) if node.is_a?(Psych::Nodes::Scalar)
-        end
-      end
-
       def inside_scalar?(line, ranges)
         ranges.any? do |range|
           range.start_offset < line.start_offset && line.start_offset < range.end_offset
         end
+      end
+
+      def run_start(context, ranges)
+        start = context.index
+        while start.positive?
+          previous = context.lines[start - 1]
+          break unless blank?(previous) && !inside_scalar?(previous, ranges)
+
+          start -= 1
+        end
+        start
       end
 
       def finding_for_run(lines, run_start, run_end)

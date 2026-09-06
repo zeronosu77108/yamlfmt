@@ -42,6 +42,16 @@ module Yamlfmt
       @node_ranges[node.object_id]
     end
 
+    def scalar_ranges(style: nil)
+      @scalar_ranges ||= {}
+      @scalar_ranges[style] ||= each_node.filter_map do |node|
+        next unless node.is_a?(Psych::Nodes::Scalar)
+        next unless style.nil? || node.style == style
+
+        range_for(node)
+      end.freeze
+    end
+
     def block_scalar?
       standard_nodes.any? do |node|
         node.is_a?(Psych::Nodes::Scalar) && BLOCK_SCALAR_STYLES.include?(node.style)
