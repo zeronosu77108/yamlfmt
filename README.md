@@ -1,20 +1,30 @@
 # yamlfmt
 
-`yamlfmt` is a Ruby YAML formatter built on
-[psych-pure](https://github.com/kddnewton/psych-pure). It preserves comments
-and rewrites only the source ranges that need formatting instead of emitting
-the whole document again.
+`yamlfmt` is a comment-preserving, minimal-diff YAML formatter for Ruby. It
+applies targeted edits to the original source instead of re-emitting the entire
+document, preserving comments and untouched formatting.
+
+It is built on [psych-pure](https://github.com/kddnewton/psych-pure).
 
 This project is unrelated to the Go formatter with the same name.
 
 ## Installation
 
-The initial release has not been published to RubyGems yet. Install it directly
-from GitHub:
+Install yamlfmt from RubyGems:
+
+```console
+$ gem install yamlfmt
+```
+
+To use it in a Rails application, add it to the application's `Gemfile`:
 
 ```ruby
-gem "yamlfmt", github: "zeronosu77108/yamlfmt"
+group :development, :test do
+  gem "yamlfmt", require: false
+end
 ```
+
+Then run `bundle install` and invoke it with `bundle exec yamlfmt`.
 
 yamlfmt requires Ruby 3.3 or newer.
 
@@ -112,10 +122,12 @@ Exclude patterns are relative to the current directory:
 - A path such as `config/generated` matches that path and everything below it.
 - `*` matches characters within one path component, `?` matches one character,
   and a final `/**` matches everything below a directory.
-- Gitignore-style negation with `!` is not supported in the initial release.
+- Gitignore-style negation with `!` is not supported.
 
 Quote patterns beginning with `*` in YAML so they are not interpreted as YAML
 aliases. Exclusions also apply to files passed explicitly.
+
+yamlfmt does not read `.gitignore`. Configure exclusions in `.yamlfmt.yml`.
 
 ## Rules
 
@@ -140,6 +152,15 @@ style. Values such as `yes`, numbers, dates, `null`, interpolation placeholders,
 and strings with YAML indicators remain quoted. Both YAML values and keys are
 checked.
 
+For example, only the safely unquotable value is changed:
+
+```diff
+-foo: "hello"
++foo: hello
+ bar: "yes"
+ date: "2026-09-06"
+```
+
 ## Safety and known limitations
 
 Before a changed file is written, yamlfmt checks that:
@@ -150,10 +171,9 @@ Before a changed file is written, yamlfmt checks that:
 
 The file is not written if validation fails.
 
-The initial release deliberately skips line-based rules for an entire file when
-it contains a block scalar (`|` or `>`). `unnecessary-quotes` still runs. This
-temporary restriction avoids a known psych-pure location bug; yamlfmt prints a
-warning when it applies.
+yamlfmt skips line-based rules for an entire file when it contains a block
+scalar (`|` or `>`). `unnecessary-quotes` still runs. This restriction avoids a
+known psych-pure location bug; yamlfmt prints a warning when it applies.
 
 The following inputs are currently unsupported and cause exit status 1 without
 modifying that file:
@@ -162,9 +182,6 @@ modifying that file:
 - a UTF-8 byte order mark;
 - custom YAML tags; and
 - anchors attached directly to scalar values.
-
-`.gitignore` rules are not read in the initial release. Add the corresponding
-paths to `.yamlfmt.yml` instead.
 
 ## Development
 

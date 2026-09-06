@@ -8,8 +8,8 @@ Gem::Specification.new do |spec|
   spec.authors = ["zeronosu77108"]
   spec.email = ["mail@zeronosu77108.com"]
 
-  spec.summary = "A minimal-diff YAML formatter for Ruby"
-  spec.description = "Formats YAML while preserving comments and untouched source text."
+  spec.summary = "A comment-preserving, minimal-diff YAML formatter for Ruby"
+  spec.description = "Applies targeted edits while preserving comments and untouched formatting."
   spec.homepage = "https://github.com/zeronosu77108/yamlfmt"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.3"
