@@ -54,6 +54,14 @@ class FileFinderTest < Minitest::Test
     assert_empty excluded_finder.call(["apps/web/generated"])
   end
 
+  def test_applies_wildcard_directory_exclusions_to_discovered_and_direct_files
+    path = write("apps/web/example.yml")
+    excluded_finder = finder(exclude: ["apps/*"])
+
+    refute_includes excluded_finder.call, path
+    assert_empty excluded_finder.call(["apps/web/example.yml"])
+  end
+
   def test_deduplicates_overlapping_roots
     paths = finder.call(["one.yml", "."])
 

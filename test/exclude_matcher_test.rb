@@ -37,6 +37,15 @@ class ExcludeMatcherTest < Minitest::Test
     refute matcher.excluded?("/project/apps/web/config/example.yml")
   end
 
+  def test_applies_slash_globs_to_descendants_of_matching_directories
+    matcher = matcher("apps/*")
+
+    assert matcher.excluded?("/project/apps/web")
+    assert matcher.excluded?("/project/apps/web/example.yml")
+    assert matcher.excluded?("/project/apps/web/nested/example.yml")
+    refute matcher.excluded?("/project/config/apps/web/example.yml")
+  end
+
   def test_does_not_apply_patterns_outside_the_root
     refute matcher("outside.yml").excluded?("/outside.yml")
   end
